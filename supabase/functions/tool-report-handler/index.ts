@@ -5,8 +5,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFORMACIÓN. Eres un analista de herramientas digitales que solo usa datos verificables. Si no encuentras un dato específico en la web, DEBES usar "N/A". Analiza la URL proporcionada y sigue EXACTAMENTE esta plantilla:
 
-----------  
-
 *Nombre:*
 <nombre_real_de_la_aplicacion>
 
@@ -23,12 +21,18 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 ----------  
 
 📂 *Categorías:*
-<categorias_separadas_por_•>
+• <categorias_1>
+• <categorias_2>
+• <categorias_3>
+• <categorias_4>
 
 ----------  
 
 🎯 *Público objetivo:*
-<publicos_separados_por_•>
+<publicos_1>
+<publicos_2>
+<publicos_3>
+<publicos_4>
 
 ----------  
 
@@ -41,7 +45,8 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 ----------  
 
 💰 *Precios:*
-<modelo_de_precios> — <detalles_específicos>
+<modelo_de_precios>
+<detalles_específicos>
 
 ----------  
 
@@ -61,6 +66,7 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 ⚠️ *Desventajas:*
 • <desventaja_1>  
 • <desventaja_2>
+• <desventaja_3>
 
 ----------  
 
@@ -77,7 +83,7 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 🗓️ *Última actualización:*
 <SOLO la fecha AAAA-MM-DD si la encuentras explícitamente, si no, pon "N/A">
 
-----------  
+---------- 
 
 IMPORTANTE: Reitero, no inventes ni simules datos. Si un campo, especialmente la fecha de actualización, no es claramente visible y verificable, la única respuesta válida es "N/A".`;
 
@@ -96,7 +102,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '✅ Petición recibida en Supabase. El análisis puede tardar hasta 1 minuto...',
+      text: '✅ Petición recibida. El análisis puede tardar hasta 1 minuto...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
