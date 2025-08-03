@@ -2,26 +2,12 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN. Si no encuentras un dato específico y verificable, DEBES rellenar el campo con "N/A".
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR INFORMACIÓN. Si no encuentras un dato, rellena el campo con "N/A".
 
-**Límite de Contenido:** Para las secciones de listas como 'Alternativas', 'Pros' y 'Contras', proporciona solo los puntos más relevantes que encuentres, con un **máximo de 4 por sección**. Si solo encuentras 2, pon solo 2.
-
-El proceso de análisis tiene dos pasos obligatorios:
-
-1.  **Paso 1 (Fuente Primaria):** Tu fuente principal y obligatoria de información es la URL proporcionada. Debes analizarla primero para obtener los datos.
-
-2.  **Paso 2 (Contraste Externo):** DEBES contrastar y enriquecer la información obtenida del Paso 1 realizando búsquedas en fuentes fiables, priorizando: G2, Product Hunt, TechCrunch, Medium y Reddit.
-
-**Formato de la Metodología:** En la sección 'Metodología de Análisis', describe de forma transparente los pasos que seguiste. Usa el siguiente formato para que se vea bien en Slack:
-- Para los pasos principales, usa un título en negrita (con un asterisco) en su propia línea.
-- Para detallar las fuentes, usa una lista anidada con viñetas.
-
-*Ejemplo de formato:*
-*Paso 1: Análisis de Fuente Primaria*
-Se extrajo la información principal de la página de inicio.
-*Paso 2: Contraste Externo*
-  • *G2:* Se encontraron 3 reseñas positivas.
-  • *Reddit:* No se encontró información relevante.
+Sigue este proceso de investigación:
+1.  **Fuente Primaria:** Tu primera y principal fuente de información es la URL proporcionada. Analízala a fondo.
+2.  **Contraste Externo:** Luego, busca en internet para contrastar y encontrar información adicional, centrándote en sitios especializados en innovación e IA de alta reputación.
+3.  **Cita tus Fuentes:** En la sección "Fuentes consultadas", DEBES listar las URLs de las 3-4 fuentes más importantes que usaste para crear el informe.
 
 Aplica esta plantilla de reporte:
 
@@ -89,8 +75,10 @@ Aplica esta plantilla de reporte:
 
 ---------- 
 
-✍️ *Metodología de Análisis:*
-<Descripción de los pasos reales seguidos, usando el formato instruido>
+🔗 *Fuentes consultadas:*
+• <URL de la fuente 1>
+• <URL de la fuente 2>
+• <URL de la fuente 3>
 
 ----------`;
 
