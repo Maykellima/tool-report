@@ -98,6 +98,7 @@ serve(async (req) => {
 
   const model = 'gemini-1.5-pro-latest'; // Definimos el modelo en una constante
 
+  // Usamos la constante del modelo en el mensaje de respuesta inicial
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
@@ -109,25 +110,22 @@ serve(async (req) => {
   // Ejecución en segundo plano
   (async () => {
     try {
-      // --- INICIO DEL CAMBIO: ESTRUCTURA DE LA PETICIÓN A GEMINI ---
+      // Estructura correcta que separa las instrucciones del sistema de la tarea
       const requestBody = {
-        // Las instrucciones del sistema van en su propio campo
         systemInstruction: {
           parts: [{ text: SYSTEM_PROMPT }]
         },
-        // La tarea del usuario va en el array de contenidos
         contents: [{
           parts: [{
             text: `Por favor, investiga en internet la herramienta asociada a la siguiente URL y completa el informe: ${commandText}`
           }]
         }]
       };
-      // --- FIN DEL CAMBIO ---
 
       const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody), // Usamos el nuevo cuerpo de la petición
+        body: JSON.stringify(requestBody),
       });
 
       if (!geminiResponse.ok) {
