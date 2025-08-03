@@ -10,7 +10,16 @@ El proceso de análisis tiene dos pasos obligatorios:
 
 2.  **Paso 2 (Contraste Externo):** DEBES contrastar y enriquecer la información obtenida del Paso 1 realizando búsquedas en fuentes fiables, priorizando: G2, Product Hunt, TechCrunch, Medium y Reddit.
 
-**Formato de la Metodología:** En la sección 'Metodología de Análisis', describe de forma transparente los pasos que seguiste. Usa **negritas** para el título de cada paso y escribe la descripción en la línea siguiente.
+**Formato de la Metodología:** En la sección 'Metodología de Análisis', describe de forma transparente los pasos que seguiste. Usa el siguiente formato para que se vea bien en Slack:
+- Para los pasos principales, usa un título en negrita (con un asterisco) en su propia línea.
+- Para detallar las fuentes, usa una lista anidada con viñetas.
+
+*Ejemplo de formato:*
+*Paso 1: Análisis de Fuente Primaria*
+Se extrajo la información principal de la página de inicio.
+*Paso 2: Contraste Externo*
+  • *G2:* Se encontraron 3 reseñas positivas.
+  • *Reddit:* No se encontró información relevante.
 
 Aplica esta plantilla de reporte:
 
@@ -89,7 +98,7 @@ serve(async (req) => {
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
-  const model = 'gemini-1.5-pro-latest'; // Modelo corregido al identificador estable
+  const model = 'gemini-1.5-pro-latest';
 
   const initialResponse = new Response(
     JSON.stringify({
