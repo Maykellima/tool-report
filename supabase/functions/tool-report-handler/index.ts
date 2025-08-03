@@ -1,9 +1,21 @@
 // Archivo: supabase/functions/tool-report-handler/index.ts
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https'://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https'://esm.sh/@supabase/supabase-js@2';
 
-const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFORMACIÓN. Eres un analista de herramientas digitales que solo usa datos verificables. Si no encuentras un dato específico en la web, DEBES usar "N/A". Analiza la URL proporcionada y sigue EXACTAMENTE esta plantilla:
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN. Para las listas (Categorías, Público Objetivo, Características, etc.), proporciona solo los puntos más relevantes que encuentres, con un máximo de 6 por sección. Si solo encuentras 2, pon solo 2.
+
+Sigue estas instrucciones en orden:
+
+1.  **Análisis Primario:** Primero, basa tu análisis en el CONTENIDO HTML que se te proporciona. La URL original se te da como referencia principal.
+
+2.  **Plan B - Búsqueda Externa:** Si el contenido HTML es insuficiente (ej. está vacío, es una página de carga, o tiene bloqueadores de bots) o no te da la información necesaria, DEBES realizar una búsqueda en internet sobre la herramienta o empresa de la URL. Busca en fuentes fiables como artículos de tecnología, foros y medios especializados para obtener una descripción precisa y actualizada.
+
+3.  **Regla Final:** Si después de ambos pasos no encuentras un dato específico, DEBES usar "N/A". Bajo ningún concepto puedes usar tu conocimiento interno de entrenamiento o simular una respuesta.
+
+Genera el informe siguiendo EXACTAMENTE esta plantilla:
+
+----------  
 
 *Nombre:*
 <nombre_real_de_la_aplicacion>
@@ -21,32 +33,25 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 ----------  
 
 📂 *Categorías:*
-• <categorias_1>
-• <categorias_2>
-• <categorias_3>
-• <categorias_4>
+• <categoría relevante>
+• <categoría relevante>
 
 ----------  
 
 🎯 *Público objetivo:*
-<publicos_1>
-<publicos_2>
-<publicos_3>
-<publicos_4>
+• <público relevante>
+• <público relevante>
 
 ----------  
 
 ✨ *Características clave:*
-• <caracteristica_1>  
-• <caracteristica_2>  
-• <caracteristica_3>
-• <caracteristica_4>
+• <característica relevante>
+• <característica relevante>
 
 ----------  
 
 💰 *Precios:*
-<modelo_de_precios>
-<detalles_específicos>
+<modelo_de_precios> — <detalles_específicos>
 
 ----------  
 
@@ -57,16 +62,14 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 ----------  
 
 ✅ *Ventajas:*
-• <ventaja_1>  
-• <ventaja_2>
-• <ventaja_3>
+• <ventaja relevante>
+• <ventaja relevante>
 
 ----------  
 
 ⚠️ *Desventajas:*
-• <desventaja_1>  
-• <desventaja_2>
-• <desventaja_3>
+• <desventaja relevante>
+• <desventaja relevante>
 
 ----------  
 
@@ -87,41 +90,43 @@ const SYSTEM_PROMPT = `Tu única y más importante regla es NUNCA INVENTAR INFOR
 
 IMPORTANTE: Reitero, no inventes ni simules datos. Si un campo, especialmente la fecha de actualización, no es claramente visible y verificable, la única respuesta válida es "N/A".`;
 
-// Función principal que se ejecuta al recibir una petición de Slack
 serve(async (req) => {
-  // Extraemos las variables de entorno de Supabase de forma segura
-  const slackSigningSecret = Deno.env.get('SLACK_SIGNING_SECRET');
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-
-  // Parseamos la petición de Slack
   const formData = await req.formData();
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
-  
-  // Respondemos inmediatamente a Slack para evitar el timeout de 3 segundos
+
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '✅ Petición recibida. El análisis puede tardar hasta 1 minuto...',
+      text: '✅ Petición recibida. Analizando la URL, esto puede tardar hasta 1 minuto...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 
-  // La función continúa ejecutándose en segundo plano después de responder
+  // Ejecución en segundo plano
   (async () => {
     try {
+      let webContent = 'No se pudo acceder al contenido de la página.';
+      try {
+        const webResponse = await fetch(commandText);
+        if (webResponse.ok) {
+          const html = await webResponse.text();
+          webContent = html.substring(0, 15000); // Limitamos el contenido para no exceder límites
+        }
+      } catch (scrapeError) {
+        console.error('Error al scrapear la web:', scrapeError);
+        webContent = `Error al acceder a la URL: ${scrapeError.message}`;
+      }
+
       const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user',   content: `Analiza la herramienta en la siguiente URL: ${commandText}` }
+        { role: 'user', content: `Analiza la herramienta basándote en el contenido de su web que te proporciono a continuación. URL original: ${commandText}. \n\n CONTENIDO EXTRAÍDO DE LA WEB: \n\n ${webContent}` }
       ];
 
-      // Llamada a la API de OpenAI
-      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const openAIResponse = await fetch('https'://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiApiKey}` },
         body: JSON.stringify({
           model: 'gpt-4o',
           messages: messages,
@@ -135,22 +140,21 @@ serve(async (req) => {
 
       const data = await openAIResponse.json();
       const content = data.choices[0].message.content;
-      const start = content.indexOf('----------');
-      const md = start >= 0 ? content.slice(start).trim() : content.trim();
+      
+      let md = content;
+      if (content.includes('----------')) {
+          const start = content.indexOf('----------');
+          md = start >= 0 ? content.slice(start).trim() : content.trim();
+      }
 
-      // Enviamos el resultado final a Slack usando la response_url
       await fetch(responseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          response_type: 'in_channel',
-          text: md,
-        }),
+        body: JSON.stringify({ response_type: 'in_channel', text: md }),
       });
 
     } catch (error) {
       console.error('Error en el análisis:', error);
-      // Si algo falla, se lo notificamos al usuario
       await fetch(responseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
