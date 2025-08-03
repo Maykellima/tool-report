@@ -2,13 +2,15 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es actuar como un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN. Si no encuentras un dato específico y verificable, DEBES rellenar el campo con "N/A".
 
-Dada una URL, tu tarea principal es realizar una investigación exhaustiva en internet para encontrar información actualizada y fiable. Para garantizar la fiabilidad, DEBES contrastar la información consultando varias fuentes, con especial atención a las siguientes plataformas: G2, Product Hunt, TechCrunch, Medium y Reddit.
+El proceso de análisis tiene dos pasos obligatorios:
 
-Si después de tu búsqueda no encuentras un dato específico, DEBES usar "N/A". Bajo ningún concepto puedes usar tu conocimiento interno de entrenamiento o simular una respuesta.
+1.  **Paso 1 (Fuente Primaria):** Tu fuente principal y obligatoria de información es la URL proporcionada. Debes analizarla primero para obtener los datos.
 
-Aplica esta plantilla de reporte que he actualizado:
+2.  **Paso 2 (Contraste Externo):** DEBES contrastar y enriquecer la información obtenida del Paso 1 realizando búsquedas en fuentes fiables, priorizando: G2, Product Hunt, TechCrunch, Medium y Reddit.
+
+Aplica esta plantilla de reporte:
 
 ----------  
 
@@ -69,7 +71,7 @@ Aplica esta plantilla de reporte que he actualizado:
 
 ----------  
 
-🔍 *Coincidencia web vs internet::*
+🔍 *Coincidencia web vs internet:*
 •  <porcentaje>%
 
 ---------- 
@@ -90,7 +92,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: `✅ Petición recibida. Iniciando investigación con ${model}...`,
+      text: '🏁 Iniciando Reporte...', // Mensaje de inicio actualizado
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
