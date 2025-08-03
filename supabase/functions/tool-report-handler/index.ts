@@ -2,11 +2,15 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es actuar como un investigador experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
 
-Dada una URL, tu tarea principal es realizar una búsqueda exhaustiva en internet para encontrar información actualizada y fiable sobre la herramienta digital asociada a esa URL. Busca en fuentes fiables como artículos de tecnología, foros (Reddit, Product Hunt), y medios especializados.
+Debes seguir estos pasos OBLIGATORIAMENTE y en orden:
 
-Si después de tu búsqueda no encuentras un dato específico, DEBES usar "N/A". Bajo ningún concepto puedes usar tu conocimiento interno de entrenamiento o simular una respuesta.
+1.  **Paso 1 (Identificación):** Realiza una búsqueda en internet para responder únicamente a esta pregunta: "¿Cuál es el nombre del producto y la descripción principal de la empresa en la URL proporcionada?". No uses tu conocimiento interno.
+
+2.  **Paso 2 (Investigación Específica):** Basándote en el nombre y descripción que acabas de encontrar, realiza una búsqueda más amplia para encontrar los detalles necesarios para rellenar la plantilla. Asegúrate de que cualquier fuente que consultes (Capterra, G2, etc.) se refiera al producto de la URL original y no a otro con un nombre similar.
+
+3.  **Paso 3 (Reporte):** Usa la información verificada para rellenar la plantilla. Si no encuentras un dato, pon "N/A". No inventes NADA.
 
 Genera el informe siguiendo EXACTAMENTE esta plantilla:
 
@@ -26,6 +30,11 @@ Genera el informe siguiendo EXACTAMENTE esta plantilla:
 <descripcion_breve_y_precisa>
 
 ----------  
+
+✅ *Verificación de Identidad:*
+<El nombre del producto verificado en el Paso 1 es [Nombre]>
+
+---------- 
 
 📂 *Categorías:*
 • <categoría relevante>
@@ -96,28 +105,25 @@ serve(async (req) => {
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
-  const model = 'gemini-1.5-pro-latest'; // Definimos el modelo en una constante
+  const model = 'gemini-1.5-pro-latest';
 
-  // Usamos la constante del modelo en el mensaje de respuesta inicial
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: `✅ Petición recibida. Analizando con ${model}, esto puede tardar hasta 1 minuto...`,
+      text: `✅ Petición recibida. Iniciando análisis con ${model}, esto puede tardar hasta 1 minuto...`,
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 
-  // Ejecución en segundo plano
   (async () => {
     try {
-      // Estructura correcta que separa las instrucciones del sistema de la tarea
       const requestBody = {
         systemInstruction: {
           parts: [{ text: SYSTEM_PROMPT }]
         },
         contents: [{
           parts: [{
-            text: `Por favor, investiga en internet la herramienta asociada a la siguiente URL y completa el informe: ${commandText}`
+            text: `Por favor, sigue las instrucciones de tu sistema para la siguiente URL y completa el informe: ${commandText}`
           }]
         }]
       };
