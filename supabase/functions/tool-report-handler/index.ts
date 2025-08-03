@@ -96,10 +96,12 @@ serve(async (req) => {
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
+  const model = 'gemini-1.5-pro-latest'; // Definimos el modelo en una constante
+
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '✅ Petición recibida. Iniciando investigación con Gemini 1.5 Pro...',
+      text: `✅ Petición recibida. Analizando con ${model}, esto puede tardar hasta 1 minuto...`,
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -107,19 +109,25 @@ serve(async (req) => {
   // Ejecución en segundo plano
   (async () => {
     try {
-      const messages = [
-        // El prompt del sistema ahora define toda la lógica
-        { role: 'system', content: SYSTEM_PROMPT },
-        // El prompt del usuario es ahora una instrucción directa de investigación
-        { role: 'user',   content: `Por favor, investiga en internet la herramienta asociada a la siguiente URL y completa el informe: ${commandText}` }
-      ];
+      // --- INICIO DEL CAMBIO: ESTRUCTURA DE LA PETICIÓN A GEMINI ---
+      const requestBody = {
+        // Las instrucciones del sistema van en su propio campo
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT }]
+        },
+        // La tarea del usuario va en el array de contenidos
+        contents: [{
+          parts: [{
+            text: `Por favor, investiga en internet la herramienta asociada a la siguiente URL y completa el informe: ${commandText}`
+          }]
+        }]
+      };
+      // --- FIN DEL CAMBIO ---
 
-      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${geminiApiKey}`, {
+      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: messages.map(m => m.content).join('\n\n') }] }],
-        }),
+        body: JSON.stringify(requestBody), // Usamos el nuevo cuerpo de la petición
       });
 
       if (!geminiResponse.ok) {
