@@ -89,7 +89,7 @@ serve(async (req) => {
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
-  const model = 'gemini-2.5-pro-latest'; // Modelo actualizado a 2.5 Pro
+  const model = 'gemini-1.5-pro-latest'; // Modelo corregido al identificador estable
 
   const initialResponse = new Response(
     JSON.stringify({
