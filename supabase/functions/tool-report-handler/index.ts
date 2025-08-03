@@ -4,7 +4,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN.
 
-Tu ÚNICA fuente de información es la URL proporcionada. No puedes buscar en ningún otro sitio de internet. Toda tu respuesta debe basarse exclusivamente en la información contenida en esa página.
+Tu ÚNICA fuente de información es la URL proporcionada. No puedes buscar en ningún otro sitio de internet. Toda tu respuesta debe basarse exclusivamente en el contenido de esa página. En la sección "Fuentes consultadas", pon únicamente la URL original que has analizado.
 
 CASO DE FALLO: Si al intentar acceder a la URL te encuentras con un bloqueo (error, captcha, acceso denegado, etc.), DEBES detener el análisis y rellenar CADA UNO de los campos del informe con el texto: "La web ha bloqueado el acceso".
 
@@ -68,7 +68,13 @@ Aplica esta plantilla de reporte:
 ⚠️ *Contras:*
 • <desventaja relevante>
 • <desventaja relevante>
-`;
+
+---------- 
+
+🔗 *Fuentes consultadas:*
+<URL original proporcionada>
+
+----------`;
 
 serve(async (req) => {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
@@ -81,7 +87,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte (Modo Fuente Única)...',
+      text: '🏁 Iniciando Reporte',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
