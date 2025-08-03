@@ -2,17 +2,13 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
+const SYSTEM_PROMPT = `Tu misión es actuar como un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
 
-Debes seguir estos pasos OBLIGATORIAMENTE y en orden:
+Dada una URL, tu tarea principal es realizar una investigación exhaustiva en internet para encontrar información actualizada y fiable. Para garantizar la fiabilidad, DEBES contrastar la información consultando varias fuentes, con especial atención a las siguientes plataformas: G2, Product Hunt, TechCrunch, Medium y Reddit.
 
-1.  **Paso 1 (Identificación):** Realiza una búsqueda en internet para responder únicamente a esta pregunta: "¿Cuál es el nombre del producto y la descripción principal de la empresa en la URL proporcionada?". No uses tu conocimiento interno.
+Si después de tu búsqueda no encuentras un dato específico, DEBES usar "N/A". Bajo ningún concepto puedes usar tu conocimiento interno de entrenamiento o simular una respuesta.
 
-2.  **Paso 2 (Investigación Específica):** Basándote en el nombre y descripción que acabas de encontrar, realiza una búsqueda más amplia para encontrar los detalles necesarios para rellenar la plantilla. Asegúrate de que cualquier fuente que consultes (Capterra, G2, etc.) se refiera al producto de la URL original y no a otro con un nombre similar.
-
-3.  **Paso 3 (Reporte):** Usa la información verificada para rellenar la plantilla. Si no encuentras un dato, pon "N/A". No inventes NADA.
-
-Genera el informe siguiendo EXACTAMENTE esta plantilla:
+Aplica esta plantilla de reporte que he actualizado:
 
 ----------  
 
@@ -27,14 +23,9 @@ Genera el informe siguiendo EXACTAMENTE esta plantilla:
 ----------  
 
 *Descripción corta:*
-<descripcion_breve_y_precisa>
+<descripcion_detallada_breve_y_precisa>
 
 ----------  
-
-✅ *Verificación de Identidad:*
-<El nombre del producto verificado en el Paso 1 es [Nombre]>
-
----------- 
 
 📂 *Categorías:*
 • <categoría relevante>
@@ -54,8 +45,9 @@ Genera el informe siguiendo EXACTAMENTE esta plantilla:
 
 ----------  
 
-💰 *Precios:*
-<modelo_de_precios> — <detalles_específicos>
+💰 *Precio:*
+<modelo_de_precios>
+<detalles_específicos>
 
 ----------  
 
@@ -65,39 +57,27 @@ Genera el informe siguiendo EXACTAMENTE esta plantilla:
 
 ----------  
 
-✅ *Ventajas:*
+✅ *Pros:*
 • <ventaja relevante>
 • <ventaja relevante>
 
 ----------  
 
-⚠️ *Desventajas:*
+⚠️ *Contras:*
 • <desventaja relevante>
 • <desventaja relevante>
 
 ----------  
 
-⭐ *Puntuación general:*
-<puntuacion>/5
-
-----------  
-
-🔍 *Validación externa:*
-• Coincidencia web vs internet: <porcentaje>%
-
-----------  
-
-🗓️ *Última actualización:*
-<SOLO la fecha AAAA-MM-DD si la encuentras explícitamente, si no, pon "N/A">
+🔍 *Coincidencia web vs internet::*
+•  <porcentaje>%
 
 ---------- 
 
 ✍️ *Metodología de Análisis:*
-<Explicación de CÓMO se obtuvo la información. Ejemplo: "Búsqueda externa realizada. Fuentes principales: [artículo de TechCrunch], [hilo de Reddit]">
+<Explicación de CÓMO se obtuvo la información>
 
----------- 
-
-IMPORTANTE: Reitero, no inventes ni simules datos. Si un campo no es claramente visible y verificable, la única respuesta válida es "N/A".`;
+----------`;
 
 serve(async (req) => {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
@@ -110,7 +90,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: `✅ Petición recibida. Iniciando análisis con ${model}, esto puede tardar hasta 1 minuto...`,
+      text: `✅ Petición recibida. Iniciando investigación con ${model}...`,
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -123,7 +103,7 @@ serve(async (req) => {
         },
         contents: [{
           parts: [{
-            text: `Por favor, sigue las instrucciones de tu sistema para la siguiente URL y completa el informe: ${commandText}`
+            text: `Por favor, sigue tus instrucciones para la siguiente URL y completa el informe: ${commandText}`
           }]
         }]
       };
