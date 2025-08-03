@@ -2,13 +2,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
+const SYSTEM_PROMPT = `Tu misión es actuar como un investigador experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN.
 
-Sigue estas instrucciones en orden:
+Dada una URL, tu tarea principal es realizar una búsqueda exhaustiva en internet para encontrar información actualizada y fiable sobre la herramienta digital asociada a esa URL. Busca en fuentes fiables como artículos de tecnología, foros (Reddit, Product Hunt), y medios especializados.
 
-1.  **Análisis Primario (Búsqueda Externa):** Realiza una búsqueda en internet sobre la herramienta o empresa de la URL proporcionada. Busca en fuentes fiables como artículos de tecnología, foros y medios especializados para obtener una descripción precisa y actualizada. La URL es el tema de tu investigación.
-
-2.  **Regla Final:** Si después de tu búsqueda no encuentras un dato específico, DEBES usar "N/A". Bajo ningún concepto puedes usar tu conocimiento interno de entrenamiento o simular una respuesta.
+Si después de tu búsqueda no encuentras un dato específico, DEBES usar "N/A". Bajo ningún concepto puedes usar tu conocimiento interno de entrenamiento o simular una respuesta.
 
 Genera el informe siguiendo EXACTAMENTE esta plantilla:
 
@@ -101,7 +99,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '✅ Petición recibida. Analizando con Gemini, esto puede tardar hasta 1 minuto...',
+      text: '✅ Petición recibida. Iniciando investigación con Gemini 1.5 Pro...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -109,15 +107,18 @@ serve(async (req) => {
   // Ejecución en segundo plano
   (async () => {
     try {
+      const messages = [
+        // El prompt del sistema ahora define toda la lógica
+        { role: 'system', content: SYSTEM_PROMPT },
+        // El prompt del usuario es ahora una instrucción directa de investigación
+        { role: 'user',   content: `Por favor, investiga en internet la herramienta asociada a la siguiente URL y completa el informe: ${commandText}` }
+      ];
+
       const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `${SYSTEM_PROMPT}\n\nAnaliza la herramienta en la siguiente URL: ${commandText}`
-            }]
-          }]
+          contents: [{ parts: [{ text: messages.map(m => m.content).join('\n\n') }] }],
         }),
       });
 
