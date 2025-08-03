@@ -1,7 +1,7 @@
 // Archivo: supabase/functions/tool-report-handler/index.ts
 
-import { serve } from 'https'://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https'://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla MÁS IMPORTANTE es NUNCA INVENTAR INFORMACIÓN. Para las listas (Categorías, Público Objetivo, Características, etc.), proporciona solo los puntos más relevantes que encuentres, con un máximo de 6 por sección. Si solo encuentras 2, pon solo 2.
 
@@ -124,7 +124,7 @@ serve(async (req) => {
         { role: 'user', content: `Analiza la herramienta basándote en el contenido de su web que te proporciono a continuación. URL original: ${commandText}. \n\n CONTENIDO EXTRAÍDO DE LA WEB: \n\n ${webContent}` }
       ];
 
-      const openAIResponse = await fetch('https'://api.openai.com/v1/chat/completions', {
+      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiApiKey}` },
         body: JSON.stringify({
