@@ -2,12 +2,13 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR INFORMACIÓN. Si no encuentras un dato, rellena el campo con "N/A".
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN.
 
-Sigue este proceso de investigación:
-1.  **Fuente Primaria:** Tu primera y principal fuente de información es la URL proporcionada. Analízala a fondo.
-2.  **Contraste Externo:** Luego, busca en internet para contrastar y encontrar información adicional, centrándote en sitios especializados en innovación e IA de alta reputación.
-3.  **Cita tus Fuentes:** En la sección "Fuentes consultadas", DEBES listar las URLs de las 3-4 fuentes más importantes que usaste para crear el informe.
+Tu ÚNICA fuente de información es la URL proporcionada. No puedes buscar en ningún otro sitio de internet. Toda tu respuesta debe basarse exclusivamente en la información contenida en esa página.
+
+CASO DE FALLO: Si al intentar acceder a la URL te encuentras con un bloqueo (error, captcha, acceso denegado, etc.), DEBES detener el análisis y rellenar CADA UNO de los campos del informe con el texto: "La web ha bloqueado el acceso".
+
+Si no encuentras un dato específico en la página, DEBES rellenar ese campo con "N/A".
 
 Aplica esta plantilla de reporte:
 
@@ -67,20 +68,7 @@ Aplica esta plantilla de reporte:
 ⚠️ *Contras:*
 • <desventaja relevante>
 • <desventaja relevante>
-
-----------  
-
-🔍 *Coincidencia web vs internet:*
-•  <porcentaje>%
-
----------- 
-
-🔗 *Fuentes consultadas:*
-• <URL de la fuente 1>
-• <URL de la fuente 2>
-• <URL de la fuente 3>
-
-----------`;
+`;
 
 serve(async (req) => {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
@@ -93,7 +81,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte...',
+      text: '🏁 Iniciando Reporte (Modo Fuente Única)...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
