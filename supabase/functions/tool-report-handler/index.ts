@@ -83,14 +83,14 @@ Dada una URL, realiza una investigación online y rellena la siguiente plantilla
 ----------`;
 
 serve(async (req) => {
-  // Leemos la nueva clave de API de Perplexity
   const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
   const formData = await req.formData();
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
-  // Modelo online de Perplexity recomendado
-  const model = 'llama-3-sonar-large-32k-online';
+  // --- INICIO DEL CAMBIO: MODELO CORREGIDO ---
+  const model = 'sonar-large-32k-online';
+  // --- FIN DEL CAMBIO ---
 
   const initialResponse = new Response(
     JSON.stringify({
@@ -102,7 +102,6 @@ serve(async (req) => {
 
   (async () => {
     try {
-      // La estructura del body para Perplexity es un array de "messages"
       const requestBody = {
         model: model,
         messages: [
@@ -111,7 +110,6 @@ serve(async (req) => {
         ]
       };
 
-      // Hacemos la llamada al endpoint de la API de Perplexity
       const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
@@ -127,7 +125,6 @@ serve(async (req) => {
       }
 
       const data = await perplexityResponse.json();
-      // La respuesta de Perplexity está en data.choices[0].message.content
       const content = data.choices[0].message.content;
       
       let md = content;
