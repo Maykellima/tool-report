@@ -8,6 +8,7 @@ const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas dig
 * Cuando un dato no se encuentre, el campo debe contener ÚNICAMENTE las letras N/A, sin ninguna explicación adicional.
 * Para las listas con viñetas ('Categorías', 'Público objetivo', 'Características clave', 'Alternativas', 'Pros', 'Contras'), DEBES proporcionar un **mínimo de 1 y un máximo de 4** de los puntos más relevantes.
 * El campo 'Precio' es de formato libre; reporta la información que encuentres.
+* En el campo "Caso de uso" debes proporcionar un caso de uso real y relevante para la herramienta.
 
 **Proceso de Investigación y Verificación Obligatorio:**
 1.  **Paso 1 (Investigación Inicial):** Realiza una búsqueda exhaustiva de la URL proporcionada para obtener la información necesaria para la descripción del informe.
@@ -47,6 +48,11 @@ Aplica esta plantilla de reporte:
 
 ----------  
 
+✨ *Caso de uso:*
+• <caso de uso real y relevante para la herramienta>
+
+---------- 
+
 💰 *Precio:*
 <modelo_de_precios_y_detalles>
 
@@ -83,7 +89,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte...',
+      text: '🏁 Iniciando Reporte con Perplexity sonar pro...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
