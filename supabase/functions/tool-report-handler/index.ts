@@ -89,7 +89,7 @@ serve(async (req) => {
   const responseUrl = formData.get('response_url') as string;
 
   // --- INICIO DEL CAMBIO: MODELO CORREGIDO ---
-  const model = 'pplx-70b-online';
+  const model = 'sonar-pro';
   // --- FIN DEL CAMBIO ---
 
   const initialResponse = new Response(
