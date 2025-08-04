@@ -2,15 +2,9 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN.
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN. Tu respuesta SIEMPRE debe basarse en los resultados de tu búsqueda en tiempo real. Si no encuentras un dato, rellena el campo con "N/A".
 
-Tu ÚNICA fuente de información es la URL proporcionada. No puedes buscar en ningún otro sitio de internet. Toda tu respuesta debe basarse exclusivamente en el contenido de esa página. En la sección "Fuentes consultadas", pon únicamente la URL original que has analizado.
-
-CASO DE FALLO: Si al intentar acceder a la URL te encuentras con un bloqueo (error, captcha, acceso denegado, etc.), DEBES detener el análisis y rellenar CADA UNO de los campos del informe con el texto: "La web ha bloqueado el acceso".
-
-Si no encuentras un dato específico en la página, DEBES rellenar ese campo con "N/A".
-
-Aplica esta plantilla de reporte:
+Dada una URL, realiza una investigación online y rellena la siguiente plantilla:
 
 ----------  
 
@@ -47,6 +41,11 @@ Aplica esta plantilla de reporte:
 
 ----------  
 
+💡 *Caso de uso:*
+<Ejemplo práctico de cómo un usuario podría usar esta herramienta para resolver un problema real>
+
+----------  
+
 💰 *Precio:*
 <modelo_de_precios>
 <detalles_específicos>
@@ -69,55 +68,67 @@ Aplica esta plantilla de reporte:
 • <desventaja relevante>
 • <desventaja relevante>
 
+----------  
+
+🔍 *Coincidencia web vs internet:*
+•  <porcentaje>%
+
 ---------- 
 
 🔗 *Fuentes consultadas:*
-<URL original proporcionada>
+• <URL de la fuente 1>
+• <URL de la fuente 2>
+• <URL de la fuente 3>
 
 ----------`;
 
 serve(async (req) => {
-  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  // Leemos la nueva clave de API de Perplexity
+  const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
   const formData = await req.formData();
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
-  const model = 'gemini-1.5-pro-latest';
+  // Modelo online de Perplexity recomendado
+  const model = 'llama-3-sonar-large-32k-online';
 
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte',
+      text: '🏁 Iniciando Reporte con Perplexity...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 
   (async () => {
     try {
+      // La estructura del body para Perplexity es un array de "messages"
       const requestBody = {
-        systemInstruction: {
-          parts: [{ text: SYSTEM_PROMPT }]
-        },
-        contents: [{
-          parts: [{
-            text: `Por favor, sigue tus instrucciones para la siguiente URL y completa el informe: ${commandText}`
-          }]
-        }]
+        model: model,
+        messages: [
+            { "role": "system", "content": SYSTEM_PROMPT },
+            { "role": "user", "content": `Por favor, sigue tus instrucciones para la siguiente URL y completa el informe: ${commandText}` }
+        ]
       };
 
-      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+      // Hacemos la llamada al endpoint de la API de Perplexity
+      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${perplexityApiKey}`
+        },
         body: JSON.stringify(requestBody),
       });
 
-      if (!geminiResponse.ok) {
-        const errorBody = await geminiResponse.text();
-        throw new Error(`La API de Gemini respondió con un error: ${geminiResponse.statusText}. Detalles: ${errorBody}`);
+      if (!perplexityResponse.ok) {
+        const errorBody = await perplexityResponse.text();
+        throw new Error(`La API de Perplexity respondió con un error: ${perplexityResponse.statusText}. Detalles: ${errorBody}`);
       }
 
-      const data = await geminiResponse.json();
-      const content = data.candidates[0].content.parts[0].text;
+      const data = await perplexityResponse.json();
+      // La respuesta de Perplexity está en data.choices[0].message.content
+      const content = data.choices[0].message.content;
       
       let md = content;
       if (content.includes('----------')) {
@@ -132,13 +143,13 @@ serve(async (req) => {
       });
 
     } catch (error) {
-      console.error('Error en el análisis con Gemini:', error);
+      console.error('Error en el análisis con Perplexity:', error);
       await fetch(responseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           response_type: 'ephemeral',
-          text: `❌ Ocurrió un error al procesar el análisis con Gemini: ${error.message}`,
+          text: `❌ Ocurrió un error al procesar el análisis con Perplexity: ${error.message}`,
         }),
       });
     }
