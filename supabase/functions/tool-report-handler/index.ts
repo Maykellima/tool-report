@@ -4,7 +4,15 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN. Tu respuesta SIEMPRE debe basarse en los resultados de tu búsqueda en tiempo real. Si no encuentras un dato, rellena el campo con "N/A".
 
-Dada una URL, realiza una investigación online y rellena la siguiente plantilla:
+**Reglas de Contenido:**
+* Para las listas ('Categorías', 'Público objetivo', 'Características clave', 'Alternativas', 'Pros', 'Contras'), proporciona un **máximo de 4** de los puntos más relevantes.
+* El texto del informe debe ser limpio, **sin números de citación** entre corchetes (ej. [1], [2]).
+
+**Formato de las Fuentes:**
+* Al final, en la sección "Fuentes consultadas", DEBES listar las 3-4 URLs más importantes que usaste.
+* Usa el formato de enlaces de Slack: \`<https://url.com|Título del Artículo o de la Web>\`
+
+Aplica esta plantilla de reporte:
 
 ----------  
 
@@ -76,9 +84,8 @@ Dada una URL, realiza una investigación online y rellena la siguiente plantilla
 ---------- 
 
 🔗 *Fuentes consultadas:*
-• <URL de la fuente 1>
-• <URL de la fuente 2>
-• <URL de la fuente 3>
+• <https://www.fuente1.com|Título de la Fuente 1>
+• <https://www.fuente2.com|Título de la Fuente 2>
 
 ----------`;
 
@@ -88,9 +95,7 @@ serve(async (req) => {
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
 
-  // --- INICIO DEL CAMBIO: MODELO CORREGIDO ---
   const model = 'sonar-pro';
-  // --- FIN DEL CAMBIO ---
 
   const initialResponse = new Response(
     JSON.stringify({
