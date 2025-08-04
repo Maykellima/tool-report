@@ -89,7 +89,7 @@ serve(async (req) => {
   const responseUrl = formData.get('response_url') as string;
 
   // --- INICIO DEL CAMBIO: MODELO CORREGIDO ---
-  const model = 'sonar-large-32k-online';
+  const model = 'pplx-70b-online';
   // --- FIN DEL CAMBIO ---
 
   const initialResponse = new Response(
