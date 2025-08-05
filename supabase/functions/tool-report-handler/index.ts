@@ -74,7 +74,7 @@ Aplica esta plantilla de reporte:
 ---------- 
 
 🤖 *Lógica Aplicada:*
-<Resumen del proceso de análisis y verificación en menos de 200 tokens>
+<Resumen del proceso de análisis y verificación en menos de 30 tokens>
 
 ----------`;
 
