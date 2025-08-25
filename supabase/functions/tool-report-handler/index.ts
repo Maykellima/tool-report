@@ -3,11 +3,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SYSTEM_PROMPT_EN = `Your mission is to act as an expert digital tool analyst. Your golden rule is to NEVER INVENT INFORMATION. If you don't find a piece of data, the JSON value must be "N/A" for strings or an empty array [] for lists.
+const SYSTEM_PROMPT_EN = `Your mission is to act as an expert digital tool analyst. Your golden rule is to NEVER INVENT INFORMATION. If you don't find a piece of data, the JSON value must be "N/A" for strings, an empty array [] for lists, or 0 for numbers.
 
 **Research Process:**
 1.  Perform an exhaustive search about the provided URL.
 2.  Cross-reference the information with reliable and specialized external sources.
+3.  Estimate the 'consistency_web_vs_users' percentage based on the consistency between the official website and external feedback.
 
 **Mandatory Output Format:**
 Your response MUST be a single, valid JSON code block. Do not add any text before or after it. Follow this exact schema:
@@ -22,7 +23,9 @@ Your response MUST be a single, valid JSON code block. Do not add any text befor
   "pricing": "string",
   "alternatives": [{"name": "string", "url": "string"}, ...],
   "pros": ["string", ...],
-  "cons": ["string", ...]
+  "cons": ["string", ...],
+  "consistency_web_vs_users": "number",
+  "consulted_sources": ["string (URL with Title in Slack format <url|title>)", ...]
 }`;
 
 /**
@@ -42,6 +45,8 @@ function formatJsonToSlackMarkdown(data, lang = 'en') {
       alts: '🔄 *Alternatives:*',
       pros: '✅ *Pros:*',
       cons: '⚠️ *Cons:*',
+      consistency: '📊 *Web vs Users Consistency:*',
+      sources: '🔗 *Consulted Sources:*',
     },
     es: {
       name: '*Nombre:*',
@@ -55,6 +60,8 @@ function formatJsonToSlackMarkdown(data, lang = 'en') {
       alts: '🔄 *Alternativas:*',
       pros: '✅ *Pros:*',
       cons: '⚠️ *Contras:*',
+      consistency: '📊 *Coincidencia web vs usuarios:*',
+      sources: '🔗 *Fuentes consultadas:*',
     }
   };
 
@@ -92,7 +99,15 @@ function formatJsonToSlackMarkdown(data, lang = 'en') {
   }
 
   if (data.cons && data.cons.length > 0) {
-    md += `${t.cons}\n• ${data.cons.join('\n• ')}\n\n----------`;
+    md += `${t.cons}\n• ${data.cons.join('\n• ')}\n\n----------\n\n`;
+  }
+
+  if (data.consistency_web_vs_users) {
+    md += `${t.consistency}\n• ${data.consistency_web_vs_users}%\n\n----------\n\n`;
+  }
+
+  if (data.consulted_sources && data.consulted_sources.length > 0) {
+    md += `${t.sources}\n• ${data.consulted_sources.join('\n• ')}\n\n----------`;
   }
 
   return md.trim();
@@ -105,9 +120,8 @@ serve(async (req) => {
   const responseUrl = formData.get('response_url') as string;
   const model = 'sonar-pro';
 
-  // NUEVO: Lógica para detectar el idioma
   let url_to_analyze = commandText;
-  let target_language = 'en'; // Inglés por defecto
+  let target_language = 'en';
 
   if (commandText.toLowerCase().endsWith(' español')) {
     target_language = 'es';
@@ -129,7 +143,6 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_ANON_KEY') ?? ''
       );
 
-      // --- PASO 1: Obtener siempre el informe en INGLÉS en formato JSON ---
       const researchBody = {
         model: model,
         messages: [
@@ -150,7 +163,6 @@ serve(async (req) => {
       if (!jsonStringMatch) throw new Error("AI response did not contain a valid JSON block.");
       const reportDataEN = JSON.parse(jsonStringMatch[0]);
 
-      // --- PASO 2: Guardar el informe en INGLÉS en la base de datos ---
       const { error: upsertError } = await supabase
         .from('reports')
         .upsert({
@@ -166,11 +178,12 @@ serve(async (req) => {
           alternatives: reportDataEN.alternatives,
           pros: reportDataEN.pros,
           cons: reportDataEN.cons,
+          consistency_web_vs_users: reportDataEN.consistency_web_vs_users,
+          consulted_sources: reportDataEN.consulted_sources,
         }, { onConflict: 'official_url' });
 
       if (upsertError) console.error('Error saving to Supabase:', upsertError);
 
-      // --- PASO 3: Traducir si es necesario ---
       let finalReportData = reportDataEN;
       if (target_language === 'es') {
         const translationBody = {
@@ -194,7 +207,6 @@ serve(async (req) => {
         finalReportData = JSON.parse(translatedJsonMatch[0]);
       }
       
-      // --- PASO 4: Formatear y enviar a Slack ---
       const md = formatJsonToSlackMarkdown(finalReportData, target_language);
 
       await fetch(responseUrl, {
