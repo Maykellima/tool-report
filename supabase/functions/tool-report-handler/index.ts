@@ -1,7 +1,6 @@
 // Archivo: supabase/functions/tool-report-handler/index.ts
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-// NUEVO: Importamos el cliente de Supabase
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR INFORMACIÓN. Si no encuentras un dato, el valor en el JSON debe ser "N/A" para strings o un array vacío [] para listas.
@@ -85,7 +84,6 @@ serve(async (req) => {
 
   (async () => {
     try {
-      // NUEVO: Inicializamos el cliente de Supabase
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -116,13 +114,19 @@ serve(async (req) => {
       const data = await perplexityResponse.json();
       const content = data.choices[0].message.content;
       
-      const reportData = JSON.parse(content);
+      // --- INICIO DEL CAMBIO: LÓGICA DE LIMPIEZA DE JSON ---
+      const jsonStringMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonStringMatch) {
+        throw new Error("La respuesta de la IA no contenía un bloque JSON válido.");
+      }
+      const jsonString = jsonStringMatch[0];
+      const reportData = JSON.parse(jsonString);
+      // --- FIN DEL CAMBIO ---
 
-      // NUEVO: Lógica de "Actualizar o Crear" (Upsert) en la base de datos
       const { error: upsertError } = await supabase
         .from('reports')
         .upsert({
-          url_oficial: reportData.url_oficial, // Usamos la URL como clave única
+          url_oficial: reportData.url_oficial,
           last_searched_at: new Date().toISOString(),
           nombre: reportData.nombre,
           descripcion_corta: reportData.descripcion_corta,
@@ -136,7 +140,6 @@ serve(async (req) => {
         }, { onConflict: 'url_oficial' });
 
       if (upsertError) {
-        // Si falla la base de datos, lo registramos pero continuamos para no afectar a Slack
         console.error('Error al guardar en Supabase:', upsertError);
       }
       
