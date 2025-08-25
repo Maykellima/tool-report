@@ -2,101 +2,81 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR, SIMULAR O ADIVINAR INFORMACIÓN.
+const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR INFORMACIÓN. Si no encuentras un dato, el valor en el JSON debe ser "N/A" para strings o un array vacío [] para listas.
 
-**Reglas de Contenido y Formato:**
-* Cuando un dato no se encuentre, el campo debe contener ÚNICAMENTE las letras N/A, sin ninguna explicación adicional.
-* Para las listas con viñetas ('Categoría', 'Público objetivo', 'Características clave', 'Alternativas', 'Pros', 'Contras'), DEBES proporcionar un **mínimo de 1 y un máximo de 4** de los puntos más relevantes.
-* El campo 'Precio' es de formato libre; reporta la información que encuentres.
+**Proceso de Investigación:**
+1.  Realiza una búsqueda exhaustiva sobre la URL proporcionada.
+2.  Contrasta la información con fuentes externas fiables y especializadas.
 
-**Proceso de Investigación Obligatorio:**
-1.  **Paso 1 (Fuente Primaria):** Tu fuente principal de información es la URL proporcionada. Analízala a fondo primero.
-2.  **Paso 2 (Contraste Externo):** DEBES contrastar y enriquecer la información obtenida del Paso 1 realizando búsquedas en **fuentes externas fiables y especializadas** que sean relevantes para el sector de la herramienta analizada.
+**Formato de Salida Obligatorio:**
+Tu respuesta DEBE ser un único bloque de código JSON válido, sin texto antes ni después. Sigue este esquema exacto:
+{
+  "nombre": "string",
+  "url_oficial": "string",
+  "descripcion_corta": "string",
+  "categorias": ["string", "string", ...],
+  "publico_objetivo": ["string", "string", ...],
+  "caracteristicas_clave": ["string", "string", ...],
+  "precio": "string",
+  "alternativas": [
+    {"nombre": "string", "url": "string"},
+    {"nombre": "string", "url": "string"}
+  ],
+  "pros": ["string", "string", ...],
+  "contras": ["string", "string", ...]
+}`;
 
-**Instrucción para 'Coincidencia web vs usuarios':**
-* Estima un porcentaje que refleje la consistencia entre la información de la web oficial y las opiniones/datos de usuarios en fuentes externas.
+/**
+ * Función para convertir el objeto JSON del AI en un mensaje de Slack formateado.
+ */
+function formatJsonToSlackMarkdown(data) {
+  let md = '----------\n\n';
+  md += `*Nombre:*\n${data.nombre}\n\n----------\n\n`;
+  md += `🌐 *URL oficial:*\n${data.url_oficial}\n\n----------\n\n`;
+  md += `✍️ *Descripción corta:*\n${data.descripcion_corta}\n\n----------\n\n`;
+  
+  if (data.categorias && data.categorias.length > 0) {
+    md += `📂 *Categoría:*\n• ${data.categorias.join('\n• ')}\n\n----------\n\n`;
+  }
+  
+  if (data.publico_objetivo && data.publico_objetivo.length > 0) {
+    md += `🎯 *Público objetivo:*\n• ${data.publico_objetivo.join('\n• ')}\n\n----------\n\n`;
+  }
 
-Aplica esta plantilla de reporte:
+  if (data.caracteristicas_clave && data.caracteristicas_clave.length > 0) {
+    md += `✨ *Características clave:*\n• ${data.caracteristicas_clave.join('\n• ')}\n\n----------\n\n`;
+  }
+  
+  md += `💰 *Precio:*\n${data.precio}\n\n----------\n\n`;
 
-----------  
+  if (data.alternativas && data.alternativas.length > 0) {
+    const alts = data.alternativas.map((alt, i) => `${i + 1}. *${alt.nombre}* — ${alt.url}`).join('\n');
+    md += `🔄 *Alternativas:*\n${alts}\n\n----------\n\n`;
+  }
 
-*Nombre:*
-<nombre_real_de_la_aplicacion>
+  if (data.pros && data.pros.length > 0) {
+    md += `✅ *Pros:*\n• ${data.pros.join('\n• ')}\n\n----------\n\n`;
+  }
 
-----------  
+  if (data.contras && data.contras.length > 0) {
+    md += `⚠️ *Contras:*\n• ${data.contras.join('\n• ')}\n\n----------`;
+  }
 
-🌐 *URL oficial:*
-<url_oficial>
+  return md;
+}
 
-----------  
-
-✍️ *Descripción corta:*
-<descripcion_detallada_breve_y_precisa>
-
-----------  
-
-📂 *Categoría:*
-• <categoría relevante>
-
-----------  
-
-🎯 *Público objetivo:*
-• <público relevante>
-
-----------  
-
-✨ *Características clave:*
-• <característica relevante>
-
-----------  
-
-👀 *Caso de uso:*
-<Ejemplo posible de caso de uso real.>
-
----------- 
-
-💰 *Precio:*
-<modelo_de_precios_y_detalles>
-
-----------  
-
-🔄 *Alternativas:*
-1. *<nombre_alternativa_1>* — <url_1>  
-
-----------  
-
-✅ *Pros:*
-• <ventaja relevante>
-
-----------  
-
-⚠️ *Contras:*
-• <desventaja relevante>
-
----------- 
-
-📊 *Coincidencia web vs usuarios:*
-• <porcentaje>%
-
-----------
-
-🔗 *Fuentes consultadas:*
-• <https://fuente1.com|Título de la Fuente 1>
-
-----------`;
 
 serve(async (req) => {
   const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
   const formData = await req.formData();
   const commandText = formData.get('text') as string;
   const responseUrl = formData.get('response_url') as string;
-
   const model = 'sonar-pro';
 
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte con Perplexity Sonar Pro...',
+      text: '🏁 Iniciando Reporte...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -128,11 +108,13 @@ serve(async (req) => {
       const data = await perplexityResponse.json();
       const content = data.choices[0].message.content;
       
-      let md = content;
-      if (content.includes('----------')) {
-          const start = content.indexOf('----------');
-          md = start >= 0 ? content.slice(start).trim() : content.trim();
-      }
+      // Convertimos la respuesta de texto (que es un string JSON) a un objeto
+      const reportData = JSON.parse(content);
+
+      // TODO: En la Fase 3, aquí irá la lógica para guardar 'reportData' en la base de datos.
+      
+      // Convertimos el objeto JSON a Markdown para Slack
+      const md = formatJsonToSlackMarkdown(reportData);
 
       await fetch(responseUrl, {
         method: 'POST',
