@@ -131,7 +131,8 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte...',
+      // CAMBIO: Mensaje inicial puesto en inglés por defecto.
+      text: '🏁 Starting Report...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
