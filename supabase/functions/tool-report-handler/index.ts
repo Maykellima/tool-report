@@ -1,6 +1,8 @@
 // Archivo: supabase/functions/tool-report-handler/index.ts
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+// NUEVO: Importamos el cliente de Supabase
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR INFORMACIÓN. Si no encuentras un dato, el valor en el JSON debe ser "N/A" para strings o un array vacío [] para listas.
 
@@ -14,16 +16,16 @@ Tu respuesta DEBE ser un único bloque de código JSON válido, sin texto antes 
   "nombre": "string",
   "url_oficial": "string",
   "descripcion_corta": "string",
-  "categorias": ["string", "string", ...],
-  "publico_objetivo": ["string", "string", ...],
-  "caracteristicas_clave": ["string", "string", ...],
+  "categorias": ["string", ...],
+  "publico_objetivo": ["string", ...],
+  "caracteristicas_clave": ["string", ...],
   "precio": "string",
   "alternativas": [
     {"nombre": "string", "url": "string"},
     {"nombre": "string", "url": "string"}
   ],
-  "pros": ["string", "string", ...],
-  "contras": ["string", "string", ...]
+  "pros": ["string", ...],
+  "contras": ["string", ...]
 }`;
 
 /**
@@ -83,6 +85,12 @@ serve(async (req) => {
 
   (async () => {
     try {
+      // NUEVO: Inicializamos el cliente de Supabase
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      );
+
       const requestBody = {
         model: model,
         messages: [
@@ -108,12 +116,30 @@ serve(async (req) => {
       const data = await perplexityResponse.json();
       const content = data.choices[0].message.content;
       
-      // Convertimos la respuesta de texto (que es un string JSON) a un objeto
       const reportData = JSON.parse(content);
 
-      // TODO: En la Fase 3, aquí irá la lógica para guardar 'reportData' en la base de datos.
+      // NUEVO: Lógica de "Actualizar o Crear" (Upsert) en la base de datos
+      const { error: upsertError } = await supabase
+        .from('reports')
+        .upsert({
+          url_oficial: reportData.url_oficial, // Usamos la URL como clave única
+          last_searched_at: new Date().toISOString(),
+          nombre: reportData.nombre,
+          descripcion_corta: reportData.descripcion_corta,
+          categorias: reportData.categorias,
+          publico_objetivo: reportData.publico_objetivo,
+          caracteristicas_clave: reportData.caracteristicas_clave,
+          precio: reportData.precio,
+          alternativas: reportData.alternativas,
+          pros: reportData.pros,
+          contras: reportData.contras,
+        }, { onConflict: 'url_oficial' });
+
+      if (upsertError) {
+        // Si falla la base de datos, lo registramos pero continuamos para no afectar a Slack
+        console.error('Error al guardar en Supabase:', upsertError);
+      }
       
-      // Convertimos el objeto JSON a Markdown para Slack
       const md = formatJsonToSlackMarkdown(reportData);
 
       await fetch(responseUrl, {
@@ -123,13 +149,13 @@ serve(async (req) => {
       });
 
     } catch (error) {
-      console.error('Error en el análisis con Perplexity:', error);
+      console.error('Error en el análisis:', error);
       await fetch(responseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           response_type: 'ephemeral',
-          text: `❌ Ocurrió un error al procesar el análisis con Perplexity: ${error.message}`,
+          text: `❌ Ocurrió un error al procesar el análisis: ${error.message}`,
         }),
       });
     }
