@@ -3,76 +3,84 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// NUEVO: Prompt actualizado para solicitar un JSON con todos los campos de la tabla.
-const SYSTEM_PROMPT = `Tu misión es ser un analista experto de herramientas digitales. Tu regla de oro es NUNCA INVENTAR INFORMACIÓN. Si no encuentras un dato, el valor en el JSON debe ser "N/A" para strings, un array vacío [] para listas, o 0 para números.
+const SYSTEM_PROMPT = `Your mission is to act as an expert digital tool analyst. Your golden rule is to NEVER INVENT, SIMULATE, OR GUESS INFORMATION.
 
-**Proceso de Investigación:**
-1.  Realiza una búsqueda exhaustiva sobre la URL proporcionada.
-2.  Contrasta la información con fuentes externas fiables y especializadas.
-3.  Estima el porcentaje de 'Coincidencia web vs usuarios' basándote en la consistencia entre la web oficial y las opiniones externas.
+**General Rules:**
+* When a piece of data is not found, the corresponding JSON value must be "N/A" for strings, an empty array [] for lists, or 0 for numbers. Do not add any extra explanatory text.
+* For list-based fields ('categories', 'target_audience', 'key_features', 'alternatives', 'pros', 'cons'), you MUST provide a **minimum of 1 and a maximum of 4** of the most relevant points.
+* The 'pricing' field is freeform; report the information you find.
 
-**Formato de Salida Obligatorio:**
-Tu respuesta DEBE ser un único bloque de código JSON válido. Sigue este esquema exacto:
+**Mandatory Research Process:**
+1.  **Step 1 (Primary Source):** Your main source of information is the provided URL. Analyze it thoroughly first.
+2.  **Step 2 (External Cross-Reference):** You MUST cross-reference and enrich the information from Step 1 by performing searches on reliable and specialized external sources relevant to the tool's sector.
+
+**Instruction for 'consistency_web_vs_users':**
+* Estimate a percentage that reflects the consistency between the official website's information and the opinions/data from users on external sources.
+
+**Mandatory Output Format:**
+Your response MUST be a single, valid JSON code block. Do not add any text before or after it. Follow this exact schema:
 {
-  "nombre": "string",
-  "url_oficial": "string",
-  "descripcion_corta": "string",
-  "categorias": ["string", ...],
-  "publico_objetivo": ["string", ...],
-  "caracteristicas_clave": ["string", ...],
-  "caso_de_uso": "string",
-  "precio": "string",
-  "alternativas": [{"nombre": "string", "url": "string"}, ...],
+  "name": "string",
+  "official_url": "string",
+  "short_description": "string",
+  "categories": ["string", ...],
+  "target_audience": ["string", ...],
+  "key_features": ["string", ...],
+  "use_case": "string",
+  "pricing": "string",
+  "alternatives": [{"name": "string", "url": "string"}, ...],
   "pros": ["string", ...],
-  "contras": ["string", ...],
-  "coincidencia_web_vs_usuarios": "number",
-  "fuentes_consultadas": ["string (URL)", ...]
+  "cons": ["string", ...],
+  "consistency_web_vs_users": "number",
+  "consulted_sources": ["string (URL)", ...]
 }`;
 
-// NUEVO: Función de formato actualizada para incluir los nuevos campos.
+/**
+ * Translates the AI's JSON object into a formatted Slack message.
+ */
 function formatJsonToSlackMarkdown(data) {
   let md = '----------\n\n';
-  md += `*Nombre:*\n${data.nombre}\n\n----------\n\n`;
-  md += `🌐 *URL oficial:*\n${data.url_oficial}\n\n----------\n\n`;
-  md += `✍️ *Descripción corta:*\n${data.descripcion_corta}\n\n----------\n\n`;
+  md += `*Name:*\n${data.name}\n\n----------\n\n`;
+  md += `🌐 *Official URL:*\n${data.official_url}\n\n----------\n\n`;
+  md += `✍️ *Short Description:*\n${data.short_description}\n\n----------\n\n`;
   
-  if (data.categorias && data.categorias.length > 0) {
-    md += `📂 *Categoría:*\n• ${data.categorias.join('\n• ')}\n\n----------\n\n`;
+  if (data.categories && data.categories.length > 0) {
+    md += `📂 *Category:*\n• ${data.categories.join('\n• ')}\n\n----------\n\n`;
   }
   
-  if (data.publico_objetivo && data.publico_objetivo.length > 0) {
-    md += `🎯 *Público objetivo:*\n• ${data.publico_objetivo.join('\n• ')}\n\n----------\n\n`;
+  if (data.target_audience && data.target_audience.length > 0) {
+    md += `🎯 *Target Audience:*\n• ${data.target_audience.join('\n• ')}\n\n----------\n\n`;
   }
 
-  if (data.caracteristicas_clave && data.caracteristicas_clave.length > 0) {
-    md += `✨ *Características clave:*\n• ${data.caracteristicas_clave.join('\n• ')}\n\n----------\n\n`;
+  if (data.key_features && data.key_features.length > 0) {
+    md += `✨ *Key Features:*\n• ${data.key_features.join('\n• ')}\n\n----------\n\n`;
   }
   
-  if (data.caso_de_uso) {
-    md += `👀 *Caso de uso:*\n${data.caso_de_uso}\n\n----------\n\n`;
+  if (data.use_case) {
+    md += `👀 *Use Case:*\n${data.use_case}\n\n----------\n\n`;
   }
   
-  md += `💰 *Precio:*\n${data.precio}\n\n----------\n\n`;
+  md += `💰 *Pricing:*\n${data.pricing}\n\n----------\n\n`;
 
-  if (data.alternativas && data.alternativas.length > 0) {
-    const alts = data.alternativas.map((alt, i) => `${i + 1}. *${alt.nombre}* — ${alt.url}`).join('\n');
-    md += `🔄 *Alternativas:*\n${alts}\n\n----------\n\n`;
+  if (data.alternatives && data.alternatives.length > 0) {
+    const alts = data.alternatives.map((alt, i) => `${i + 1}. *${alt.name}* — ${alt.url}`).join('\n');
+    md += `🔄 *Alternatives:*\n${alts}\n\n----------\n\n`;
   }
 
   if (data.pros && data.pros.length > 0) {
     md += `✅ *Pros:*\n• ${data.pros.join('\n• ')}\n\n----------\n\n`;
   }
 
-  if (data.contras && data.contras.length > 0) {
-    md += `⚠️ *Contras:*\n• ${data.contras.join('\n• ')}\n\n----------\n\n`;
+  if (data.cons && data.cons.length > 0) {
+    md += `⚠️ *Cons:*\n• ${data.cons.join('\n• ')}\n\n----------\n\n`;
   }
 
-  if (data.coincidencia_web_vs_usuarios) {
-    md += `📊 *Coincidencia web vs usuarios:*\n• ${data.coincidencia_web_vs_usuarios}%\n\n----------\n\n`;
+  if (data.consistency_web_vs_users) {
+    md += `📊 *Web vs Users Consistency:*\n• ${data.consistency_web_vs_users}%\n\n----------\n\n`;
   }
 
-  if (data.fuentes_consultadas && data.fuentes_consultadas.length > 0) {
-    md += `🔗 *Fuentes consultadas:*\n• ${data.fuentes_consultadas.join('\n• ')}\n\n----------`;
+  if (data.consulted_sources && data.consulted_sources.length > 0) {
+    md += `🔗 *Consulted Sources:*\n• ${data.consulted_sources.join('\n• ')}\n\n----------`;
   }
 
   return md.trim();
@@ -89,7 +97,7 @@ serve(async (req) => {
   const initialResponse = new Response(
     JSON.stringify({
       response_type: 'ephemeral',
-      text: '🏁 Iniciando Reporte...',
+      text: '🏁 Starting Report...',
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -105,7 +113,7 @@ serve(async (req) => {
         model: model,
         messages: [
             { "role": "system", "content": SYSTEM_PROMPT },
-            { "role": "user", "content": `Por favor, sigue tus instrucciones para la siguiente URL y completa el informe: ${commandText}` }
+            { "role": "user", "content": `Please follow your instructions for the following URL and complete the report: ${commandText}` }
         ]
       };
 
@@ -120,7 +128,7 @@ serve(async (req) => {
 
       if (!perplexityResponse.ok) {
         const errorBody = await perplexityResponse.text();
-        throw new Error(`La API de Perplexity respondió con un error: ${perplexityResponse.statusText}. Detalles: ${errorBody}`);
+        throw new Error(`The Perplexity API responded with an error: ${perplexityResponse.statusText}. Details: ${errorBody}`);
       }
 
       const data = await perplexityResponse.json();
@@ -128,33 +136,32 @@ serve(async (req) => {
       
       const jsonStringMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonStringMatch) {
-        throw new Error("La respuesta de la IA no contenía un bloque JSON válido.");
+        throw new Error("AI response did not contain a valid JSON block.");
       }
       const jsonString = jsonStringMatch[0];
       const reportData = JSON.parse(jsonString);
 
-      // NUEVO: La llamada a la base de datos ahora incluye todos los campos nuevos.
       const { error: upsertError } = await supabase
         .from('reports')
         .upsert({
-          url_oficial: reportData.url_oficial,
+          official_url: reportData.official_url,
           last_searched_at: new Date().toISOString(),
-          nombre: reportData.nombre,
-          descripcion_corta: reportData.descripcion_corta,
-          categorias: reportData.categorias,
-          publico_objetivo: reportData.publico_objetivo,
-          caracteristicas_clave: reportData.caracteristicas_clave,
-          caso_de_uso: reportData.caso_de_uso,
-          precio: reportData.precio,
-          alternativas: reportData.alternativas,
+          name: reportData.name,
+          short_description: reportData.short_description,
+          categories: reportData.categories,
+          target_audience: reportData.target_audience,
+          key_features: reportData.key_features,
+          use_case: reportData.use_case,
+          pricing: reportData.pricing,
+          alternatives: reportData.alternatives,
           pros: reportData.pros,
-          contras: reportData.contras,
-          coincidencia_web_vs_usuarios: reportData.coincidencia_web_vs_usuarios,
-          fuentes_consultadas: reportData.fuentes_consultadas,
-        }, { onConflict: 'url_oficial' });
+          cons: reportData.cons,
+          consistency_web_vs_users: reportData.consistency_web_vs_users,
+          consulted_sources: reportData.consulted_sources,
+        }, { onConflict: 'official_url' });
 
       if (upsertError) {
-        console.error('Error al guardar en Supabase:', upsertError);
+        console.error('Error saving to Supabase:', upsertError);
       }
       
       const md = formatJsonToSlackMarkdown(reportData);
@@ -166,13 +173,13 @@ serve(async (req) => {
       });
 
     } catch (error) {
-      console.error('Error en el análisis:', error);
+      console.error('Error during analysis with Perplexity:', error);
       await fetch(responseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           response_type: 'ephemeral',
-          text: `❌ Ocurrió un error al procesar el análisis: ${error.message}`,
+          text: `❌ An error occurred while processing the analysis with Perplexity: ${error.message}`,
         }),
       });
     }
